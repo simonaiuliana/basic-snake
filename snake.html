@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snake Game</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-image: url('https://www.toptal.com/designers/subtlepatterns/patterns/dark_embroidery.png');
+      background-size: cover;
+      text-align: center;
+    }
+
+    canvas {
+      border: 5px solid #000;
+      display: block;
+      margin: 20px auto;
+      background-color: rgba(255, 255, 255, 0.8);
+    }
+
+    .info {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .info div {
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .difficulty-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #333;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>Snake Game</h1>
+  <div class="info">
+    <div>Score: <span id="score">0</span></div>
+    <div>Time: <span id="timer">0</span> seconds</div>
+  </div>
+  <canvas id="snakeCanvas" width="500" height="500"></canvas>
+
+  <div class="difficulty-buttons">
+    <button onclick="setDifficulty('easy')">Easy</button>
+    <button onclick="setDifficulty('medium')">Medium</button>
+    <button onclick="setDifficulty('hard')">Hard</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("snakeCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const gridSize = 20; // Size of each grid square
+    let snake = [{ x: 5, y: 5 }]; // Initial snake position
+    let direction = "right"; // Snake starts moving to the right
+    let food = generateFood(); // Generate initial food position
+    let score = 0; // Track player score
+    let timer = 0; // Track survival time
+    let speed = 100; // Game speed
+
+    // Create a timer that increments every second
+    setInterval(() => {
+      timer++;
+      document.getElementById("timer").innerText = timer;
+    }, 1000);
+
+    // Function to draw the game (snake, food, background)
+    function draw() {
+      // Clear the canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw the snake
+      ctx.fillStyle = "#00F"; // Snake color
+      ctx.strokeStyle = "#FFF"; // Snake outline
+      snake.forEach(segment => {
+        ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+        ctx.strokeRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+      });
+
+      // Draw the food
+      ctx.fillStyle = "#F00"; // Food color
+      ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
+    }
+
+    // Function to update the game state (move snake, check for collisions)
+    function update() {
+      // Move the snake by copying the head and moving it in the current direction
+      const head = { ...snake[0] };
+
+      // Change direction based on input
+      switch (direction) {
+        case "up": head.y -= 1; break;
+        case "down": head.y += 1; break;
+        case "left": head.x -= 1; break;
+        case "right": head.x += 1; break;
+      }
+
+      // Check for collisions with the walls
+      if (head.x < 0 || head.x >= canvas.width / gridSize || head.y < 0 || head.y >= canvas.height / gridSize) {
+        resetGame(); // Reset the game if the snake hits the wall
+        return;
+      }
+
+      // Check for collisions with the snake itself
+      for (let i = 1; i < snake.length; i++) {
+        if (head.x === snake[i].x && head.y === snake[i].y) {
+          resetGame(); // Reset if the snake eats itself
+          return;
+        }
+      }
+
+      // Check if the snake eats the food
+      if (head.x === food.x && head.y === food.y) {
+        score++; // Increase score
+        document.getElementById("score").innerText = score; // Update score display
+        snake.unshift(food); // Add new segment to the snake
+        food = generateFood(); // Generate new food
+      } else {
+        // Move the snake forward (remove tail and add new head)
+        snake.pop();
+        snake.unshift(head);
+      }
+    }
+
+    // Generate random food position within the grid
+    function generateFood() {
+      const x = Math.floor(Math.random() * (canvas.width / gridSize));
+      const y = Math.floor(Math.random() * (canvas.height / gridSize));
+      return { x, y };
+    }
+
+    // Reset the game (snake, score, food)
+    function resetGame() {
+      snake = [{ x: 5, y: 5 }];
+      direction = "right";
+      food = generateFood();
+      score = 0;
+      document.getElementById("score").innerText = score;
+      timer = 0;
+      document.getElementById("timer").innerText = timer;
+    }
+
+    // Main game loop (updates and renders the game)
+    function gameLoop() {
+      update();
+      draw();
+    }
+
+    // Handle keyboard input to change direction
+    document.addEventListener("keydown", (event) => {
+      switch (event.key) {
+        case "ArrowUp": if (direction !== "down") direction = "up"; break;
+        case "ArrowDown": if (direction !== "up") direction = "down"; break;
+        case "ArrowLeft": if (direction !== "right") direction = "left"; break;
+        case "ArrowRight": if (direction !== "left") direction = "right"; break;
+      }
+    });
+
+    // Set game difficulty (changes the speed of the snake)
+    function setDifficulty(difficulty) {
+      clearInterval(gameInterval);
+      switch (difficulty) {
+        case "easy": speed = 200; break;
+        case "medium": speed = 100; break;
+        case "hard": speed = 50; break;
+      }
+      gameInterval = setInterval(gameLoop, speed);
+    }
+
+    // Start the game loop with default speed
+    let gameInterval = setInterval(gameLoop, speed);
+  </script>
+</body>
+</html>
